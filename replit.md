@@ -7,6 +7,7 @@ This is a full-featured document and media management web application called "Do
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Login interface: Clean, professional, functional design for internal system use - no flashy elements, focus on business functionality and visual appeal.
 
 ## System Architecture
 
