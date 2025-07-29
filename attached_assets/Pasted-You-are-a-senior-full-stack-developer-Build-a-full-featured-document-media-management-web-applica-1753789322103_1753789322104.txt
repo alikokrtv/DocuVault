@@ -1,0 +1,110 @@
+You are a senior full-stack developer. Build a full-featured document & media management web application using **Laravel (backend)** and **React + Tailwind CSS (frontend)**. The system will be used by a company named **Plus Kitchen**, and should use their color palette and branding.
+
+---
+
+🎨 **Branding Details:**
+- Use visual style and colors inspired by: https://pluskitchen.com.tr/franchise-plus-kitchen.html
+- Use this logo in the header: https://pluskitchen.com.tr/images/logo.png
+- Design must be modern, responsive, and mobile-friendly.
+
+---
+
+📦 **System Name:** Dokumanet
+
+---
+
+🛠️ **Tech Stack:**
+- Backend: Laravel 11
+- Frontend: React (via Vite or Inertia)
+- Styling: Tailwind CSS
+- Database: MySQL or SQLite (for Replit use SQLite)
+- Auth: Laravel Breeze or Fortify with email verification
+
+---
+
+👤 **User Roles:**
+1. **Department Account**
+   - Can log in and upload files.
+   - Only sees their own uploads.
+   - Can view comments from the administrator.
+2. **Administrator (Patron)**
+   - Can view uploads from all departments.
+   - Can comment on each file.
+   - Can search, filter, approve, or reject files.
+   - Can share files via email or WhatsApp.
+
+---
+
+📁 **Core Features:**
+
+✅ **Authentication**
+- Login / Register / Email verification
+- One account per department
+
+✅ **File Upload System**
+- Departments upload files with title, description, and category
+- Accepted formats: PDF, JPG, PNG, MP4, DOCX, XLSX
+- Store files in local `/storage/app/public`
+- Show previews for images, videos, and PDFs
+- Assign files to categories within each department
+
+✅ **Dashboard Layout**
+- Admin dashboard: All uploads by department, with filters
+- Department dashboard: "My uploads", "Comments received"
+
+✅ **Comment System**
+- Admin can add comments to each file
+- Department users can read those comments
+
+✅ **Notification System**
+- Email sent when:
+  - A new file is uploaded (to admin)
+  - A comment is added (to the department)
+
+✅ **Advanced Search & Filtering**
+- Filter by department, category, date range, file type, keyword
+
+✅ **Share System**
+- Admin can click “Share via Email” or “Share via WhatsApp”
+- Generates short link or uses mailto: and WhatsApp API
+
+✅ **Admin Approval System**
+- Admin can approve / reject files with status tags
+- Filter by "Pending", "Approved", "Rejected"
+
+✅ **Visual Department Boxes**
+- Each department has an icon/image
+- Homepage shows all departments as clickable cards
+
+✅ **Dark Mode Toggle (Optional)**
+
+---
+
+🔐 **Security**
+- Departments cannot view or modify each other’s files
+- Only admin can access all content
+- Uploaded files use hashed filenames for privacy
+
+---
+
+📌 **Bonus Features (optional):**
+- PWA Support (installable app look)
+- Version control: If a file is updated, older version is saved
+- Assistant tab: Explains “how to upload”, “how to read comments”
+- File activity logs: Who uploaded, when, IP address (basic log)
+
+---
+
+🎯 **Deliverables**
+- Laravel backend with working API or Inertia setup
+- React frontend with Tailwind (use color scheme of Plus Kitchen)
+- Storage-linked files for preview
+- Example users:
+  - admin@pluskitchen.com / password
+  - ik@pluskitchen.com / password
+
+---
+
+This system will be deployed and demoed via Replit, so optimize storage accordingly. Create a working MVP with clean and understandable file structure. Build everything step by step and confirm each feature before moving on.
+
+Start now.
