@@ -3,14 +3,21 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from sqlalchemy import text
 import os
 from datetime import datetime
 import uuid
 import mimetypes
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///docuvault.db'  # SQLite for simplicity, can be changed to PostgreSQL
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+# Database configuration - Railway compatible
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+else:
+    # SQLite fallback for local development
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///docuvault.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
@@ -462,27 +469,58 @@ def preview_file(file_id):
             mimetype=mime_type
         )
 
-if __name__ == '__main__':
+def initialize_app():
+    """Uygulama başlatma ve veritabanı kurulumu"""
     with app.app_context():
-        db.create_all()
-        
-        # Create default admin user if not exists
-        admin = User.query.filter_by(username='admin').first()
-        if not admin:
-            # Create default department
-            default_dept = Department(name='Genel', description='Genel departman')
-            db.session.add(default_dept)
-            db.session.commit()
+        try:
+            # Veritabanı bağlantısını test et
+            with db.engine.connect() as conn:
+                conn.execute(text('SELECT 1'))
+            print("✅ Veritabanı bağlantısı başarılı")
             
-            admin = User(
-                username='admin',
-                email='admin@pluskitchen.com',
-                password_hash=generate_password_hash('admin123'),
-                role='admin',
-                department_id=default_dept.id
-            )
-            db.session.add(admin)
-            db.session.commit()
-            print("Admin kullanıcısı oluşturuldu: admin/admin123")
+            # Tabloları oluştur
+            db.create_all()
+            
+            # Eğer kullanıcı yoksa initialization script çalıştır
+            user_count = User.query.count()
+            if user_count == 0:
+                print("🏗️ İlk kurulum algılandı, veritabanı başlatılıyor...")
+                from init_db import init_database
+                init_database()
+            else:
+                print(f"✅ Veritabanında {user_count} kullanıcı bulundu")
+                
+        except Exception as e:
+            print(f"⚠️ Veritabanı kurulum hatası: {e}")
+            # Basit fallback - sadece admin kullanıcısı oluştur
+            db.create_all()
+            admin = User.query.filter_by(username='admin').first()
+            if not admin:
+                # Genel departman oluştur
+                default_dept = Department.query.filter_by(name='Genel').first()
+                if not default_dept:
+                    default_dept = Department(name='Genel', description='Genel departman')
+                    db.session.add(default_dept)
+                    db.session.commit()
+                
+                admin = User(
+                    username='admin',
+                    email='admin@pluskitchen.com',
+                    password_hash=generate_password_hash('admin123'),
+                    role='admin',
+                    department_id=default_dept.id
+                )
+                db.session.add(admin)
+                db.session.commit()
+                print("✅ Temel admin kullanıcısı oluşturuldu: admin/admin123")
+
+if __name__ == '__main__':
+    # Uygulama başlatma
+    initialize_app()
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Railway için port ayarı
+    port = int(os.environ.get('PORT', 5000))
+    debug_mode = os.environ.get('FLASK_ENV') != 'production'
+    
+    print(f"🚀 DocuVault başlatılıyor - Port: {port}, Debug: {debug_mode}")
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
