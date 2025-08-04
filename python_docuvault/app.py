@@ -121,6 +121,11 @@ class Comment(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# Health Check Route for Railway
+@app.route('/health')
+def health_check():
+    return {"status": "healthy", "message": "DocuVault is running!"}, 200
+
 # Routes
 @app.route('/')
 def index():
