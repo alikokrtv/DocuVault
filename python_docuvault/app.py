@@ -3,21 +3,15 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from sqlalchemy import text
 import os
 from datetime import datetime
 import uuid
 import mimetypes
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
-# Database configuration - Railway compatible
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL:
-    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
-else:
-    # SQLite fallback for local development
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///docuvault.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'DocuVault-Secret-Key-2025')
+# SQLite Database Configuration for Railway
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///docuvault.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
@@ -475,49 +469,108 @@ def preview_file(file_id):
         )
 
 def initialize_app():
-    """Uygulama başlatma ve veritabanı kurulumu"""
+    """SQLite veritabanı kurulumu ve başlatma"""
     with app.app_context():
         try:
-            # Veritabanı bağlantısını test et
-            with db.engine.connect() as conn:
-                conn.execute(text('SELECT 1'))
-            print("✅ Veritabanı bağlantısı başarılı")
+            print("🗃️ SQLite veritabanı başlatılıyor...")
             
             # Tabloları oluştur
             db.create_all()
+            print("✅ Veritabanı tabloları oluşturuldu")
             
-            # Eğer kullanıcı yoksa initialization script çalıştır
+            # Kullanıcı sayısını kontrol et
             user_count = User.query.count()
             if user_count == 0:
-                print("🏗️ İlk kurulum algılandı, veritabanı başlatılıyor...")
-                from init_db import init_database
-                init_database()
+                print("🏗️ İlk kurulum algılandı, örnek veriler ekleniyor...")
+                create_sample_data()
             else:
                 print(f"✅ Veritabanında {user_count} kullanıcı bulundu")
                 
         except Exception as e:
-            print(f"⚠️ Veritabanı kurulum hatası: {e}")
-            # Basit fallback - sadece admin kullanıcısı oluştur
+            print(f"⚠️ Veritabanı hatası: {e}")
+            print("🔄 Basit fallback ile devam ediliyor...")
             db.create_all()
-            admin = User.query.filter_by(username='admin').first()
-            if not admin:
-                # Genel departman oluştur
-                default_dept = Department.query.filter_by(name='Genel').first()
-                if not default_dept:
-                    default_dept = Department(name='Genel', description='Genel departman')
-                    db.session.add(default_dept)
-                    db.session.commit()
-                
-                admin = User(
-                    username='admin',
-                    email='admin@pluskitchen.com',
-                    password_hash=generate_password_hash('admin123'),
-                    role='admin',
-                    department_id=default_dept.id
-                )
-                db.session.add(admin)
-                db.session.commit()
-                print("✅ Temel admin kullanıcısı oluşturuldu: admin/admin123")
+            create_admin_user()
+
+def create_sample_data():
+    """Örnek verileri oluştur"""
+    try:
+        # Departmanları oluştur
+        departments_data = [
+            {"name": "Kreatif", "description": "Kreatif tasarım ve içerik üretim"},
+            {"name": "Muhasebe", "description": "Mali işler ve muhasebe"},
+            {"name": "İnsan Kaynakları", "description": "İK ve personel işleri"},
+            {"name": "Satış", "description": "Satış ve pazarlama"},
+            {"name": "Genel", "description": "Genel yönetim"}
+        ]
+        
+        departments = {}
+        for dept_data in departments_data:
+            dept = Department(**dept_data)
+            db.session.add(dept)
+            db.session.flush()
+            departments[dept_data["name"]] = dept
+            print(f"  📁 {dept_data['name']}")
+        
+        # Kullanıcıları oluştur
+        users_data = [
+            {"username": "admin", "email": "admin@pluskitchen.com.tr", "password": "admin123", "role": "admin", "department": "Genel"},
+            {"username": "oğuz.akbaş", "email": "oguz.akbas@pluskitchen.com.tr", "password": "user123", "role": "admin", "department": "Kreatif"},
+            {"username": "eney.guney", "email": "eney.guney@pluskitchen.com.tr", "password": "user123", "role": "department", "department": "Kreatif"},
+            {"username": "melisa.sunay", "email": "melisa.sunay@pluskitchen.com.tr", "password": "user123", "role": "department", "department": "Kreatif"},
+            {"username": "ahmet.yilmaz", "email": "ahmet.yilmaz@pluskitchen.com.tr", "password": "user123", "role": "department", "department": "İnsan Kaynakları"},
+            {"username": "ayse.kaya", "email": "ayse.kaya@pluskitchen.com.tr", "password": "user123", "role": "department", "department": "Muhasebe"}
+        ]
+        
+        for user_data in users_data:
+            user = User(
+                username=user_data["username"],
+                email=user_data["email"],
+                password_hash=generate_password_hash(user_data["password"]),
+                role=user_data["role"],
+                department_id=departments[user_data["department"]].id
+            )
+            db.session.add(user)
+            role_icon = "👑" if user_data["role"] == "admin" else "👤"
+            print(f"  {role_icon} {user_data['username']}")
+        
+        db.session.commit()
+        print("✅ Örnek veriler başarıyla oluşturuldu!")
+        print("\n🔐 Giriş Bilgileri:")
+        print("   👑 admin / admin123")
+        print("   👑 oğuz.akbaş / user123")
+        print("   👤 eney.guney / user123")
+        
+    except Exception as e:
+        print(f"❌ Örnek veri oluşturma hatası: {e}")
+        db.session.rollback()
+        create_admin_user()
+
+def create_admin_user():
+    """Sadece admin kullanıcısı oluştur"""
+    try:
+        # Genel departman
+        default_dept = Department.query.filter_by(name='Genel').first()
+        if not default_dept:
+            default_dept = Department(name='Genel', description='Genel departman')
+            db.session.add(default_dept)
+            db.session.commit()
+        
+        # Admin kullanıcı
+        admin = User.query.filter_by(username='admin').first()
+        if not admin:
+            admin = User(
+                username='admin',
+                email='admin@pluskitchen.com',
+                password_hash=generate_password_hash('admin123'),
+                role='admin',
+                department_id=default_dept.id
+            )
+            db.session.add(admin)
+            db.session.commit()
+            print("✅ Admin kullanıcısı oluşturuldu: admin/admin123")
+    except Exception as e:
+        print(f"❌ Admin oluşturma hatası: {e}")
 
 if __name__ == '__main__':
     # Uygulama başlatma
