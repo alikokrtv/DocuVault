@@ -1,0 +1,9 @@
+[start]
+cmd = "gunicorn app:app --bind 0.0.0.0:$PORT"
+
+[providers]
+python = "3.11"
+
+[variables]
+PIP_NO_CACHE_DIR = "1"
+PYTHONPATH = "/app"
