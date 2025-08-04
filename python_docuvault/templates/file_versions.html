@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Revizyon Geçmişi - {{ file.title }} - Dokumanet{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center space-x-2 text-sm text-gray-500 mb-4">
+            <a href="{{ url_for('department_dashboard') }}" class="hover:text-gray-700">Departman Paneli</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{{ url_for('view_file', file_id=file.id) }}" class="hover:text-gray-700">{{ file.title }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span class="text-gray-900">Revizyon Geçmişi</span>
+        </div>
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Revizyon Geçmişi</h1>
+                <p class="text-gray-600">{{ file.title }} belgesinin tüm versiyonları</p>
+            </div>
+            <div class="flex space-x-3">
+                <a href="{{ url_for('revise_file', file_id=file.id) }}" 
+                   class="px-4 py-2 bg-pk-green text-white rounded-md hover:bg-green-700 transition-colors">
+                    <i class="fas fa-code-branch mr-2"></i> Yeni Revizyon
+                </a>
+                <a href="{{ url_for('view_file', file_id=file.id) }}" 
+                   class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-eye mr-2"></i> Belgeyi Görüntüle
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Versions Timeline -->
+    <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div class="px-6 py-4 border-b bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-history mr-2"></i> Versiyon Geçmişi ({{ versions|length }} versiyon)
+            </h2>
+        </div>
+        
+        <div class="p-6">
+            <div class="space-y-6">
+                {% for version in versions %}
+                <div class="relative {% if not loop.last %}pb-6{% endif %}">
+                    <!-- Timeline line -->
+                    {% if not loop.last %}
+                    <div class="absolute left-6 top-12 w-0.5 h-full bg-gray-200"></div>
+                    {% endif %}
+                    
+                    <div class="flex items-start space-x-4">
+                        <!-- Version indicator -->
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center {% if version.is_current_version %}bg-pk-green text-white{% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {% if version.is_current_version %}
+                                    <i class="fas fa-star"></i>
+                                {% else %}
+                                    <span class="font-semibold text-sm">v{{ version.version_number }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Version details -->
+                        <div class="flex-1 min-w-0">
+                            <div class="bg-gray-50 rounded-lg p-6 border {% if version.is_current_version %}border-pk-green bg-green-50{% endif %}">
+                                <!-- Version header -->
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <div class="flex items-center space-x-3">
+                                            <h3 class="text-lg font-semibold text-gray-900">
+                                                Versiyon {{ version.version_number }}
+                                                {% if version.is_current_version %}
+                                                    <span class="ml-2 px-2 py-1 text-xs font-medium rounded-full bg-pk-green text-white">
+                                                        <i class="fas fa-star mr-1"></i> Güncel
+                                                    </span>
+                                                {% endif %}
+                                            </h3>
+                                        </div>
+                                        <div class="flex items-center space-x-4 text-sm text-gray-600 mt-2">
+                                            <span>
+                                                <i class="fas fa-user mr-1"></i>
+                                                {{ version.uploader.username if version.uploader else 'Bilinmiyor' }}
+                                            </span>
+                                            <span>
+                                                <i class="fas fa-calendar mr-1"></i>
+                                                {{ version.uploaded_at.strftime('%d.%m.%Y %H:%M') }}
+                                            </span>
+                                            <span>
+                                                <i class="fas fa-file mr-1"></i>
+                                                {{ version.file_type.upper() }}
+                                            </span>
+                                            <span>
+                                                <i class="fas fa-weight mr-1"></i>
+                                                {{ "%.2f"|format(version.file_size / 1024 / 1024) }} MB
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Status badge -->
+                                    <div>
+                                        {% if version.status == 'pending' %}
+                                            <span class="px-3 py-1 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                <i class="fas fa-clock mr-1"></i> Beklemede
+                                            </span>
+                                        {% elif version.status == 'approved' %}
+                                            <span class="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
+                                                <i class="fas fa-check mr-1"></i> Onaylandı
+                                            </span>
+                                        {% elif version.status == 'rejected' %}
+                                            <span class="px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">
+                                                <i class="fas fa-times mr-1"></i> Reddedildi
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Version info -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 mb-2">Belge Bilgileri</h4>
+                                        <div class="space-y-1 text-sm text-gray-600">
+                                            <p><strong>Başlık:</strong> {{ version.title }}</p>
+                                            <p><strong>Kategori:</strong> {{ version.category or 'Belirtilmemiş' }}</p>
+                                            <p><strong>Dosya Adı:</strong> {{ version.original_filename }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if version.revision_notes %}
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 mb-2">Revizyon Notları</h4>
+                                        <p class="text-sm text-gray-600 bg-white p-3 rounded border">
+                                            {{ version.revision_notes }}
+                                        </p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if version.description %}
+                                <div class="mb-4">
+                                    <h4 class="font-medium text-gray-900 mb-2">Açıklama</h4>
+                                    <p class="text-sm text-gray-600">{{ version.description }}</p>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Actions -->
+                                <div class="flex justify-between items-center pt-4 border-t">
+                                    <div class="flex space-x-3">
+                                        <a href="{{ url_for('view_file', file_id=version.id) }}" 
+                                           class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                            <i class="fas fa-eye mr-1"></i> Görüntüle
+                                        </a>
+                                        
+                                        {% if version.comments|length > 0 %}
+                                        <span class="text-gray-400">•</span>
+                                        <span class="text-gray-600 text-sm">
+                                            <i class="fas fa-comments mr-1"></i> {{ version.comments|length }} yorum
+                                        </span>
+                                        {% endif %}
+                                        
+                                        {% if version.reviewed_at %}
+                                        <span class="text-gray-400">•</span>
+                                        <span class="text-gray-600 text-sm">
+                                            <i class="fas fa-user-check mr-1"></i> 
+                                            {{ version.reviewer.username if version.reviewer else 'Bilinmiyor' }} tarafından incelendi
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if not version.is_current_version %}
+                                    <div class="text-xs text-gray-500">
+                                        Eski versiyon
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-8 text-center">
+        <a href="{{ url_for('view_file', file_id=file.id) }}" 
+           class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i> Belgeye Dön
+        </a>
+    </div>
+</div>
+{% endblock %}

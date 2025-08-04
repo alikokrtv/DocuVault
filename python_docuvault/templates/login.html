@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div class="max-w-md w-full space-y-8 p-8">
+        <div class="text-center">
+            <img src="https://pluskitchen.com.tr/images/logo.png" alt="Plus Kitchen Logo" class="h-12 w-auto mx-auto mb-4">
+            <h2 class="text-2xl font-bold text-gray-900">Sisteme Giriş</h2>
+            <p class="text-gray-600">Dokumanet Belge Yönetim Sistemi</p>
+        </div>
+
+        <div class="bg-white shadow-lg rounded-lg p-8">
+            <form method="POST" class="space-y-6">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-user mr-1"></i> Kullanıcı Adı
+                    </label>
+                    <input type="text" 
+                           id="username" 
+                           name="username" 
+                           required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pk-green focus:border-transparent"
+                           placeholder="Kullanıcı adınızı girin">
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-lock mr-1"></i> Şifre
+                    </label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pk-green focus:border-transparent"
+                           placeholder="Şifrenizi girin">
+                </div>
+
+                <button type="submit" 
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pk-green hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pk-green transition-colors">
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    Giriş Yap
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-blue-800 mb-2">Demo Hesapları</h4>
+                    <div class="text-xs text-blue-600 space-y-1">
+                        <p><strong>Yönetici:</strong> admin / admin123</p>
+                        <p><strong>Departman:</strong> user / user123</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <a href="{{ url_for('index') }}" class="text-sm text-gray-500 hover:text-gray-700">
+                <i class="fas fa-arrow-left mr-1"></i> Ana Sayfaya Dön
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

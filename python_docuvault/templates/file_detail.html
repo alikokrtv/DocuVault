@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block title %}{{ file.title }} - Dokumanet{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 sm:mb-8">
+        <div class="mb-4 sm:mb-0">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{{ file.title }}</h1>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-sm text-gray-600">
+                <span><i class="fas fa-building mr-1"></i> {{ file.department.name if file.department else 'Bilinmiyor' }}</span>
+                <span><i class="fas fa-user mr-1"></i> {{ file.uploader.username if file.uploader else 'Bilinmiyor' }}</span>
+                <span><i class="fas fa-calendar mr-1"></i> {{ file.uploaded_at.strftime('%d.%m.%Y') }}</span>
+                <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                    <i class="fas fa-code-branch mr-1"></i> v{{ file.version_number }}
+                    {% if file.is_current_version %}
+                        <span class="ml-1">(Güncel)</span>
+                    {% endif %}
+                </span>
+                {% if not file.is_current_version %}
+                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> Eski Versiyon
+                    </span>
+                {% endif %}
+            </div>
+            <p class="text-gray-600 mt-2">{{ file.description or 'Açıklama eklenmemiş' }}</p>
+            {% if file.revision_notes %}
+                <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-sticky-note mr-1"></i> 
+                        <strong>Revizyon Notları:</strong> {{ file.revision_notes }}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+        <div class="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0 w-full sm:w-auto">
+            <!-- Version Actions -->
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                <a href="{{ url_for('file_versions', file_id=file.id) }}" 
+                   class="px-3 py-2 text-sm border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-center sm:text-left">
+                    <i class="fas fa-history mr-1"></i> Geçmiş ({{ file.get_all_versions()|length }})
+                </a>
+                {% if current_user.role == 'department' and (file.uploaded_by == current_user.id or current_user.role == 'admin') %}
+                    <a href="{{ url_for('revise_file', file_id=file.id) }}" 
+                       class="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-center sm:text-left">
+                        <i class="fas fa-code-branch mr-1"></i> Revize Et
+                    </a>
+                {% endif %}
+            </div>
+            
+            <!-- Admin Actions -->
+            {% if current_user.role == 'admin' and file.status == 'pending' %}
+            <div class="flex space-x-2">
+                <form method="POST" action="{{ url_for('approve_file', file_id=file.id) }}" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+                        <i class="fas fa-check mr-2"></i> Onayla
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('reject_file', file_id=file.id) }}" class="inline">
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                        <i class="fas fa-times mr-2"></i> Reddet
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- File Preview -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Belge Önizleme</h2>
+                
+                <div class="bg-gray-50 rounded-lg overflow-hidden">
+                    {% if file.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}
+                        <!-- Image Preview -->
+                        <div class="text-center py-8">
+                            <img src="{{ url_for('preview_file', file_id=file.id) }}" 
+                                 alt="{{ file.title }}" 
+                                 class="max-w-full max-h-96 mx-auto rounded-lg shadow-sm">
+                        </div>
+                    {% elif file.file_type == 'pdf' %}
+                        <!-- Enhanced PDF Preview with PDF.js -->
+                        <div class="w-full bg-gray-100 rounded-lg" style="height: 600px;">
+                            <div class="flex items-center justify-between p-3 bg-gray-200 rounded-t-lg">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-file-pdf text-red-500"></i>
+                                    <span class="text-sm font-medium text-gray-700">{{ file.original_filename }}</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <a href="{{ url_for('preview_file', file_id=file.id) }}" 
+                                       target="_blank"
+                                       class="inline-flex items-center px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors">
+                                        <i class="fas fa-external-link-alt mr-1"></i> Yeni Sekme
+                                    </a>
+                                    <a href="{{ url_for('preview_file', file_id=file.id) }}" 
+                                       download="{{ file.original_filename }}"
+                                       class="inline-flex items-center px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">
+                                        <i class="fas fa-download mr-1"></i> İndir
+                                    </a>
+                                </div>
+                            </div>
+                            <iframe src="{{ url_for('preview_file', file_id=file.id) }}" 
+                                    class="w-full border-0 rounded-b-lg" 
+                                    style="height: calc(100% - 48px);"
+                                    title="{{ file.title }}">
+                                <div class="text-center py-12">
+                                    <i class="fas fa-file-pdf text-6xl text-red-500 mb-4"></i>
+                                    <p class="text-gray-600 mb-4">PDF Önizlemesi Yüklenemedi</p>
+                                    <a href="{{ url_for('preview_file', file_id=file.id) }}" 
+                                       target="_blank"
+                                       class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                                        <i class="fas fa-external-link-alt mr-2"></i> PDF'i Yeni Sekmede Aç
+                                    </a>
+                                </div>
+                            </iframe>
+                        </div>
+                    {% elif file.file_type == 'mp4' %}
+                        <!-- Video Preview -->
+                        <div class="text-center py-8">
+                            <video controls class="max-w-full max-h-96 mx-auto rounded-lg shadow-sm">
+                                <source src="{{ url_for('preview_file', file_id=file.id) }}" type="video/mp4">
+                                Tarayıcınız video oynatmayı desteklemiyor.
+                            </video>
+                        </div>
+                    {% elif file.file_type in ['xlsx', 'xls'] %}
+                        <!-- Excel Preview with JavaScript Viewer -->
+                        <div class="w-full bg-gray-50 rounded-lg" style="min-height: 600px;">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-green-50 border-b">
+                                <div class="flex items-center space-x-3 mb-2 sm:mb-0">
+                                    <i class="fas fa-file-excel text-xl sm:text-2xl text-green-600"></i>
+                                    <div>
+                                        <h3 class="text-base sm:text-lg font-medium text-gray-900">{{ file.title }}</h3>
+                                        <p class="text-xs sm:text-sm text-gray-600">{{ file.original_filename }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Excel Dosyası</span>
+                                    <div class="flex space-x-2">
+                                        <button onclick="loadExcelPreview()" 
+                                                class="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                                            <i class="fas fa-eye mr-1"></i> Önizle
+                                        </button>
+                                        <a href="{{ url_for('preview_file', file_id=file.id) }}" 
+                                           download="{{ file.original_filename }}"
+                                           class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                                            <i class="fas fa-download mr-1"></i> İndir
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="excel-preview-container" class="p-4">
+                                <div class="text-center py-12">
+                                    <i class="fas fa-file-excel text-6xl sm:text-8xl text-green-400 mb-4"></i>
+                                    <h4 class="text-lg sm:text-xl font-medium text-gray-900 mb-2">Excel Dosyası Hazır</h4>
+                                    <p class="text-sm sm:text-base text-gray-600 mb-4">Excel dosyasını tarayıcıda görüntülemek için "Önizle" butonuna tıklayın</p>
+                                    <p class="text-xs text-gray-500">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        Dosya boyutu: {{ "%.1f KB"|format(file.file_size / 1024) if file.file_size else "Bilinmiyor" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <script>
+                            function loadExcelPreview() {
+                                const container = document.getElementById('excel-preview-container');
+                                container.innerHTML = `
+                                    <div class="text-center py-8">
+                                        <i class="fas fa-spinner fa-spin text-2xl text-green-600 mb-2"></i>
+                                        <p class="text-gray-600">Excel dosyası yüklenyor...</p>
+                                    </div>
+                                `;
+                                
+                                const fileUrl = '{{ url_for("preview_file", file_id=file.id) }}';
+                                window.viewExcel(fileUrl, 'excel-preview-container');
+                            }
+                            
+                            // Auto-load Excel preview when page loads
+                            document.addEventListener('DOMContentLoaded', function() {
+                                loadExcelPreview();
+                            });
+                        </script>
+                    {% elif file.file_type in ['docx', 'doc'] %}
+                        <!-- Word Preview with JavaScript Viewer -->
+                        <div class="w-full bg-gray-50 rounded-lg" style="min-height: 600px;">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-blue-50 border-b">
+                                <div class="flex items-center space-x-3 mb-2 sm:mb-0">
+                                    <i class="fas fa-file-word text-xl sm:text-2xl text-blue-600"></i>
+                                    <div>
+                                        <h3 class="text-base sm:text-lg font-medium text-gray-900">{{ file.title }}</h3>
+                                        <p class="text-xs sm:text-sm text-gray-600">{{ file.original_filename }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">Word Dosyası</span>
+                                    <div class="flex space-x-2">
+                                        <button onclick="loadWordPreview()" 
+                                                class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                                            <i class="fas fa-eye mr-1"></i> Önizle
+                                        </button>
+                                        <a href="{{ url_for('preview_file', file_id=file.id) }}" 
+                                           download="{{ file.original_filename }}"
+                                           class="px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors">
+                                            <i class="fas fa-download mr-1"></i> İndir
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="word-preview-container" class="p-4">
+                                <div class="text-center py-12">
+                                    <i class="fas fa-file-word text-6xl sm:text-8xl text-blue-400 mb-4"></i>
+                                    <h4 class="text-lg sm:text-xl font-medium text-gray-900 mb-2">Word Dosyası Hazır</h4>
+                                    <p class="text-sm sm:text-base text-gray-600 mb-4">Word dosyasını tarayıcıda görüntülemek için "Önizle" butonuna tıklayın</p>
+                                    <p class="text-xs text-gray-500">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        Dosya boyutu: {{ "%.1f KB"|format(file.file_size / 1024) if file.file_size else "Bilinmiyor" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <script>
+                            function loadWordPreview() {
+                                const container = document.getElementById('word-preview-container');
+                                container.innerHTML = `
+                                    <div class="text-center py-8">
+                                        <i class="fas fa-spinner fa-spin text-2xl text-blue-600 mb-2"></i>
+                                        <p class="text-gray-600">Word dosyası yüklenyor...</p>
+                                    </div>
+                                `;
+                                
+                                const fileUrl = '{{ url_for("preview_file", file_id=file.id) }}';
+                                window.viewWord(fileUrl, 'word-preview-container');
+                            }
+                            
+                            // Auto-load Word preview when page loads
+                            document.addEventListener('DOMContentLoaded', function() {
+                                loadWordPreview();
+                            });
+                        </script>
+                    {% elif file.file_type == 'txt' %}
+                        <!-- Text Preview -->
+                        <div class="w-full" style="height: 400px;">
+                            <iframe src="{{ url_for('preview_file', file_id=file.id) }}" 
+                                    class="w-full h-full border-0 rounded-lg bg-white p-4"
+                                    title="{{ file.title }}">
+                                <div class="text-center py-12">
+                                    <i class="fas fa-file-alt text-6xl text-gray-500 mb-4"></i>
+                                    <p class="text-gray-600 mb-4">Metin dosyası yüklenemedi</p>
+                                    <a href="{{ url_for('preview_file', file_id=file.id) }}" 
+                                       target="_blank"
+                                       class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
+                                        <i class="fas fa-external-link-alt mr-2"></i> Yeni Sekmede Aç
+                                    </a>
+                                </div>
+                            </iframe>
+                        </div>
+                    {% elif file.file_type in ['pptx', 'ppt'] %}
+                        <!-- PowerPoint Preview -->
+                        <div class="w-full bg-gray-50 rounded-lg" style="height: 600px;">
+                            <div class="flex items-center justify-between p-4 bg-orange-50 border-b">
+                                <div class="flex items-center space-x-3">
+                                    <i class="fas fa-file-powerpoint text-2xl text-orange-600"></i>
+                                    <div>
+                                        <h3 class="text-lg font-medium text-gray-900">{{ file.title }}</h3>
+                                        <p class="text-sm text-gray-600">{{ file.original_filename }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded">PowerPoint Dosyası</span>
+                                </div>
+                            </div>
+                            <div class="flex-1 flex items-center justify-center p-8">
+                                <div class="text-center">
+                                    <i class="fas fa-file-powerpoint text-8xl text-orange-400 mb-6"></i>
+                                    <h4 class="text-xl font-medium text-gray-900 mb-2">PowerPoint Dosyası Hazır</h4>
+                                    <p class="text-gray-600 mb-6">PowerPoint dosyalarını tarayıcıda görüntülemek için aşağıdaki seçenekleri kullanın</p>
+                                    <div class="flex justify-center space-x-3">
+                                        <a href="{{ url_for('preview_file', file_id=file.id) }}" 
+                                           target="_blank"
+                                           class="inline-flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors">
+                                            <i class="fas fa-external-link-alt mr-2"></i> Yeni Sekmede Aç
+                                        </a>
+                                        <a href="{{ url_for('preview_file', file_id=file.id) }}" 
+                                           download="{{ file.original_filename }}"
+                                           class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
+                                            <i class="fas fa-download mr-2"></i> İndir
+                                        </a>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-4">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        Dosya boyutu: {{ "%.1f KB"|format(file.file_size / 1024) if file.file_size else "Bilinmiyor" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- Generic File -->
+                        <div class="text-center py-12">
+                            <i class="fas fa-file text-6xl text-gray-400 mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">{{ file.file_type.upper() }} Dosyası</h3>
+                            <p class="text-gray-600 mb-6">Bu dosya türü önizlenemiyor</p>
+                            <div class="flex justify-center space-x-3">
+                                <a href="{{ url_for('preview_file', file_id=file.id) }}" 
+                                   target="_blank"
+                                   class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
+                                    <i class="fas fa-external-link-alt mr-2"></i> Yeni Sekmede Aç
+                                </a>
+                                <a href="{{ url_for('preview_file', file_id=file.id) }}" 
+                                   download="{{ file.original_filename }}"
+                                   class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                    <i class="fas fa-download mr-2"></i> İndir
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- File Information -->
+        <div>
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Belge Bilgileri</h3>
+                
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Durum:</span>
+                        {% if file.status == 'pending' %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-clock mr-1"></i> Beklemede
+                            </span>
+                        {% elif file.status == 'approved' %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                <i class="fas fa-check mr-1"></i> Onaylandı
+                            </span>
+                        {% elif file.status == 'rejected' %}
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                <i class="fas fa-times mr-1"></i> Reddedildi
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Kategori:</span>
+                        <span class="font-medium">{{ file.category or 'Belirtilmemiş' }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Dosya Adı:</span>
+                        <span class="font-medium">{{ file.original_filename }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Dosya Türü:</span>
+                        <span class="font-medium">{{ file.file_type.upper() }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Boyut:</span>
+                        <span class="font-medium">{{ "%.2f"|format(file.file_size / 1024 / 1024) }} MB</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Yükleyen:</span>
+                        <span class="font-medium">{{ file.uploader.username if file.uploader else 'Bilinmiyor' }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Departman:</span>
+                        <span class="font-medium">{{ file.department.name if file.department else 'Bilinmiyor' }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Yükleme Tarihi:</span>
+                        <span class="font-medium">{{ file.uploaded_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                    </div>
+                    
+                    {% if file.reviewed_at %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">İnceleme Tarihi:</span>
+                        <span class="font-medium">{{ file.reviewed_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if file.reviewer %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">İnceleyen:</span>
+                        <span class="font-medium">{{ file.reviewer.username }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments Section - Full Width Below Content -->
+    <div class="mt-8 bg-white rounded-lg shadow-sm border p-8">
+        <h3 class="text-2xl font-semibold text-gray-900 mb-6">
+            <i class="fas fa-comments mr-3"></i> Yorumlar ve Tartışma
+        </h3>
+        
+        <!-- Existing Comments -->
+        <div class="space-y-6 mb-8">
+            {% for comment in file.comments %}
+            <div class="bg-gray-50 rounded-lg p-6 border-l-4 border-blue-500">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                            <span class="text-white font-semibold text-sm">{{ comment.user.username[0].upper() }}</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-900">{{ comment.user.username }}</span>
+                            <div class="text-xs text-gray-500">{{ comment.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                        </div>
+                    </div>
+                    {% if comment.user.role == 'admin' %}
+                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                            <i class="fas fa-shield-alt mr-1"></i> Yönetici
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="ml-13">
+                    <p class="text-gray-700 leading-relaxed">{{ comment.content }}</p>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-12 bg-gray-50 rounded-lg">
+                <i class="fas fa-comment-slash text-4xl text-gray-300 mb-4"></i>
+                <h4 class="text-lg font-medium text-gray-500 mb-2">Henüz yorum yapılmamış</h4>
+                <p class="text-gray-400">Bu belge hakkında ilk yorumu siz yapın.</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Add Comment Form -->
+        <div class="border-t pt-8">
+            <form method="POST" action="{{ url_for('add_comment', file_id=file.id) }}" class="space-y-4">
+                <div>
+                    <label for="content" class="block text-lg font-medium text-gray-700 mb-3">
+                        <i class="fas fa-pen mr-2"></i> Yeni Yorum Ekle
+                    </label>
+                    <textarea id="content" 
+                              name="content" 
+                              rows="5" 
+                              required
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pk-green focus:border-transparent text-base"
+                              placeholder="Bu belge hakkında yorumunuzu, geri bildiriminizi veya sorularınızı yazın..."></textarea>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" 
+                            class="px-6 py-3 bg-pk-green text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pk-green transition-colors font-medium">
+                        <i class="fas fa-paper-plane mr-2"></i> Yorumu Gönder
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-8 text-center">
+        {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" 
+               class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i> Yönetici Paneline Dön
+            </a>
+        {% else %}
+            <a href="{{ url_for('department_dashboard') }}" 
+               class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i> Departman Paneline Dön
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

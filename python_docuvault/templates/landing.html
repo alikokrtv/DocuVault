@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div class="max-w-md w-full space-y-8 p-8">
+        <div class="text-center">
+            <!-- Logo -->
+            <div class="flex items-center justify-center mb-8">
+                <img 
+                    src="https://pluskitchen.com.tr/images/logo.png" 
+                    alt="Plus Kitchen Logo" 
+                    class="h-12 w-auto"
+                />
+            </div>
+            
+            <!-- System Name -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Dokumanet</h1>
+                <p class="text-gray-600">Belge Yönetim Sistemi</p>
+                <p class="text-sm text-green-600 mt-2">Python Flask ile Yeniden Tasarlandı</p>
+            </div>
+        </div>
+
+        <!-- Login Card -->
+        <div class="bg-white shadow-lg border-0 rounded-lg">
+            <div class="p-8">
+                <div class="space-y-6">
+                    <!-- System Features -->
+                    <div class="text-center space-y-4">
+                        <div class="p-4 bg-pk-light-green rounded-lg">
+                            <i class="fas fa-file-alt text-2xl text-pk-green mb-2"></i>
+                            <h3 class="font-medium text-gray-900">Güvenli Belge Yönetimi</h3>
+                            <p class="text-sm text-gray-600 mt-1">
+                                Departman bazlı erişim kontrolü ile belgelerinizi güvenle yönetin
+                            </p>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <div class="w-2 h-2 bg-pk-green rounded-full mr-2"></div>
+                                Dosya Yükleme
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-2 h-2 bg-pk-green rounded-full mr-2"></div>
+                                Onay Süreci
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-2 h-2 bg-pk-green rounded-full mr-2"></div>
+                                Yorum Sistemi
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-2 h-2 bg-pk-green rounded-full mr-2"></div>
+                                Dosya Önizleme
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Login Button -->
+                    <div class="space-y-4">
+                        <a href="{{ url_for('login') }}" 
+                           class="w-full flex justify-center items-center px-4 py-3 border border-transparent text-sm font-medium rounded-md text-white bg-pk-green hover:bg-pk-green focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pk-green transition-colors">
+                            <i class="fas fa-sign-in-alt mr-2"></i>
+                            Sisteme Giriş Yap
+                        </a>
+                        
+                        <!-- Info -->
+                        <div class="text-center text-sm text-gray-500">
+                            <p>Kullanıcı adı ve şifrenizle giriş yapın</p>
+                            <p class="mt-1 text-xs">Demo: admin/admin123</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technology Info -->
+        <div class="text-center text-xs text-gray-400">
+            <p>Python Flask • SQLAlchemy • Jinja2 Templates</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
